@@ -1,0 +1,14 @@
+schema_version = 1
+
+[workspace]
+name = "HEPS-xrsabre-default"
+
+[paths]
+raw = "workspace/data/raw"
+processed = "workspace/data/processed"
+roi = "workspace/data/ROI"
+planning = "workspace/planning"
+reduced = "workspace/reduced"
+notebooks = "workspace/scripts/xrs_script"
+scripts = "workspace/scripts"
+diagnostics = "workspace/diagnostics"

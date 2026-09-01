@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "heps-xrsabre"
+version = "0.2.0"
+description = "Unified X-ray Raman scattering toolkit for the HEPS ID33 beamline"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "h5py>=3.8",
+    "ipympl>=0.9",
+    "ipywidgets>=8.1",
+    "jupyterlab>=4.4",
+    "matplotlib>=3.7",
+    "nbformat>=5.10",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["xrsabre*", "xrsana*", "xrslab*"]
+
+[tool.setuptools.package-data]
+xrsabre = ["templates/*.ipynb"]
+xrsana = ["resources/data/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.pyright]
+typeCheckingMode = "standard"
+pythonVersion = "3.13"
+venvPath = ".pixi/envs"
+venv = "default"
+include = ["xrsabre", "xrsana", "xrslab", "workspace/scripts/xrs_script", "tests"]
+exclude = [".pixi", "data", "workspace"]
+
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+name = "HEPS-xrsabre"
+platforms = ["win-64", "linux-64"]
+version = "0.2.0"
+
+[tool.pixi.dependencies]
+python = "3.13.*"
+h5py = ">=3.13,<4"
+matplotlib = ">=3.10,<4"
+numpy = ">=2.2,<3"
+pandas = ">=2.2,<4"
+scipy = ">=1.15,<2"
+jupyterlab = ">=4.4,<5"
+pytest = ">=8,<10"
+nbformat = ">=5.10,<6"
+ipywidgets = ">=8.1,<9"
+ipympl = ">=0.9,<0.11"
+tk = "*"
+
+[tool.pixi.pypi-dependencies]
+heps-xrsabre = { path = ".", editable = true }
+
+[tool.pixi.tasks]
+lab = "python -m xrsabre"
+test-jupyter = "python -m pytest tests/test_jupyter_entry.py tests/test_jupyter_notebooks.py"
+test = "python -m pytest"
+smoke-test = "python -c \"import h5py, matplotlib, numpy, pandas, scipy, xrsabre, xrsana, xrslab; print('HEPS-xrsabre environment OK')\""
+check = { depends-on = ["smoke-test", "test"] }

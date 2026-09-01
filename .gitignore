@@ -1,0 +1,35 @@
+# Python and test artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Pixi environment (the lockfile remains versioned)
+.pixi/
+
+# Editor and notebook state
+.vscode/
+.idea/
+.ipynb_checkpoints/
+.codex/
+
+# Beamtime inputs and generated outputs
+workspace/data/raw/*
+!workspace/data/raw/.gitkeep
+workspace/data/processed/*
+!workspace/data/processed/.gitkeep
+workspace/diagnostics/*
+!workspace/diagnostics/.gitkeep
+ex_space/
+
+# Runtime files
+*.log
+*.tmp
+*.bak
+*.swp
+.DS_Store
+Thumbs.db
