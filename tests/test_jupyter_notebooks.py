@@ -7,7 +7,9 @@ import ast
 import nbformat
 import pytest
 
+from xrsabre.notebook import missing_scan_ids
 from xrsabre.paths import load_workspace
+from xrslab.workflow import AnalysisConfig
 
 WORKSPACE = load_workspace()
 MAIN_NOTEBOOK = WORKSPACE.notebooks / "XRS_DataAnalysis.ipynb"
@@ -56,15 +58,45 @@ def test_analysis_notebook_uses_workspace_apis():
     text = "\n".join(cell.source for cell in _code_cells(notebook))
     for expected in (
         "from xrsabre.paths import load_workspace",
+        "from xrsabre.notebook import missing_scan_ids, run_qc_review",
         "from xrslab.workflow import",
         "RoiEditor.from_config(config, workspace)",
-        "prepare_analysis(config, workspace)",
-        "build_qc_report(prepared)",
+        "missing_scan_ids(config, workspace)",
+        "run_qc_review(config, workspace)",
         "finalize_analysis(prepared, approval)",
         "export_analysis(",
     ):
         assert expected in text
     assert "curve_fit" not in text
+
+
+def test_missing_raw_scans_are_reported_without_touching_analysis_paths(tmp_path):
+    config_file = tmp_path / "xrsabre.toml"
+    config_file.write_text(
+        """schema_version = 1
+
+[workspace]
+name = "empty"
+
+[paths]
+raw = "raw"
+processed = "processed"
+roi = "roi"
+planning = "planning"
+reduced = "reduced"
+notebooks = "notebooks"
+scripts = "scripts"
+diagnostics = "diagnostics"
+""",
+        encoding="utf-8",
+    )
+    from xrsabre.paths import load_workspace
+
+    workspace = load_workspace(config_file, environment={})
+    config = AnalysisConfig(element="Ho", elastic_scan_ids=(57,), xrs_scan_ids=(59,))
+    assert missing_scan_ids(config, workspace) == (57, 59)
+    workspace.raw.joinpath("Ho", "57_example").mkdir(parents=True)
+    assert missing_scan_ids(config, workspace) == (59,)
 
 
 def test_workspace_setup_cells_execute_in_a_jupyter_kernel():
@@ -95,3 +127,28 @@ def test_workspace_setup_cells_execute_in_a_jupyter_kernel():
     for cell in executed.cells:
         errors = [output for output in cell.get("outputs", []) if output.output_type == "error"]
         assert not errors
+
+
+def test_full_analysis_notebook_executes_with_workspace_data():
+    pytest.importorskip("nbclient")
+    from nbclient import NotebookClient
+
+    notebook = _load(MAIN_NOTEBOOK)
+    client = NotebookClient(
+        notebook,
+        timeout=180,
+        kernel_name="python3",
+        resources={"metadata": {"path": str(WORKSPACE.notebooks)}},
+    )
+    try:
+        executed = client.execute()
+    except Exception as exc:
+        pytest.fail(f"Full Jupyter analysis notebook failed: {exc}")
+
+    errors = [
+        output
+        for cell in executed.cells
+        for output in cell.get("outputs", [])
+        if output.output_type == "error"
+    ]
+    assert not errors
