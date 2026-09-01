@@ -575,7 +575,7 @@ class RoiEditor:
         class _ThrottledRectangleSelector(RectangleSelector):
             """Avoid flooding the ipympl frontend with full-canvas redraws."""
 
-            _motion_interval = 1 / 20
+            _motion_interval = 1 / 60
 
             def __init__(self, *args, **kwargs):
                 self._last_motion = float("-inf")

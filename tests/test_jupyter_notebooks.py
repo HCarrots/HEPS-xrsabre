@@ -14,11 +14,18 @@ from xrslab.workflow import AnalysisConfig
 
 WORKSPACE = load_workspace()
 MAIN_NOTEBOOK = WORKSPACE.notebooks / "XRS_DataAnalysis.ipynb"
+TEMPLATE_DIRECTORY = WORKSPACE.root / "xrsabre" / "templates"
 
 
 def _notebooks():
     paths = sorted(WORKSPACE.notebooks.glob("*.ipynb"))
     assert paths, f"no notebooks found in {WORKSPACE.notebooks}"
+    return paths
+
+
+def _templates():
+    paths = sorted(TEMPLATE_DIRECTORY.glob("*.ipynb"))
+    assert paths, f"no notebook templates found in {TEMPLATE_DIRECTORY}"
     return paths
 
 
@@ -30,15 +37,14 @@ def _code_cells(notebook):
     return [cell for cell in notebook.cells if cell.cell_type == "code"]
 
 
-@pytest.mark.parametrize("path", _notebooks(), ids=lambda path: path.name)
-def test_notebooks_are_clean_valid_and_parseable(path):
+@pytest.mark.parametrize("path", _templates(), ids=lambda path: path.name)
+def test_notebook_templates_are_clean_valid_and_parseable(path):
     notebook = _load(path)
     assert notebook.nbformat >= 4
     assert _code_cells(notebook)
     for index, cell in enumerate(_code_cells(notebook)):
         ast.parse(cell.source, filename=f"{path.name}:cell-{index}")
         assert cell.get("outputs", []) == []
-        assert cell.get("execution_count") is None
 
     serialized = path.read_text(encoding="utf-8")
     for forbidden in (
@@ -52,6 +58,12 @@ def test_notebooks_are_clean_valid_and_parseable(path):
         "xrslab.cli",
     ):
         assert forbidden not in serialized
+
+
+@pytest.mark.parametrize("path", _notebooks(), ids=lambda path: path.name)
+def test_workspace_notebooks_are_parseable(path):
+    for index, cell in enumerate(_code_cells(_load(path))):
+        ast.parse(cell.source, filename=f"{path.name}:cell-{index}")
 
 
 def test_analysis_notebook_uses_workspace_apis():

@@ -145,7 +145,7 @@ def test_widget_throttles_drag_redraws_and_hides_labels_while_dragging(editor):
     editor.add_roi("lambda", "VU-B2", 4, 8, 3, 7)
     editor.widget
 
-    assert editor._RectangleSelector._motion_interval == pytest.approx(1 / 20)
+    assert editor._RectangleSelector._motion_interval == pytest.approx(1 / 60)
     assert editor._roi_label_artists
     editor._set_drag_active(True)
     assert all(not label.get_visible() for label in editor._roi_label_artists)
