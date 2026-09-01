@@ -4,6 +4,7 @@ import matplotlib
 import numpy as np
 import pandas as pd
 import pytest
+from matplotlib.backend_bases import MouseEvent
 
 from xrsabre.paths import initialize_workspace
 from xrslab.analysis import load_roi_collection
@@ -137,6 +138,32 @@ def test_widget_smoke_with_zero_nan_linear_and_log_images(editor):
     editor._render()
     editor._norm_control.value = "log"
     editor._render()
+    editor.close()
+
+
+def test_widget_throttles_drag_redraws_and_hides_labels_while_dragging(editor):
+    editor.add_roi("lambda", "VU-B2", 4, 8, 3, 7)
+    editor.widget
+
+    assert editor._RectangleSelector._motion_interval == pytest.approx(1 / 20)
+    assert editor._roi_label_artists
+    editor._set_drag_active(True)
+    assert all(not label.get_visible() for label in editor._roi_label_artists)
+    editor._set_drag_active(False)
+    assert all(label.get_visible() for label in editor._roi_label_artists)
+
+    selector = editor._selector
+    canvas = editor._figure.canvas
+
+    def mouse_event(name, xdata, ydata):
+        x, y = editor._axis.transData.transform((xdata, ydata))
+        return MouseEvent(name, canvas, x, y, button=1)
+
+    selector.press(mouse_event("button_press_event", 5, 4))
+    selector.onmove(mouse_event("motion_notify_event", 6, 5))
+    selector.release(mouse_event("button_release_event", 7, 6))
+    assert editor.boxes("lambda")[-1].x1 == 6
+    assert all(label.get_visible() for label in editor._roi_label_artists)
     editor.close()
 
 

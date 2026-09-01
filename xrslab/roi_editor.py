@@ -15,6 +15,7 @@ import uuid
 from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
+from time import monotonic
 from typing import Mapping
 
 import numpy as np
@@ -148,6 +149,8 @@ class RoiEditor:
         self._syncing = False
         self._clear_armed = False
         self._canvas_connection = None
+        self._drag_active = False
+        self._roi_label_artists = []
 
     @staticmethod
     def _validate_images(images: Mapping[str, np.ndarray]) -> dict[str, np.ndarray]:
@@ -567,7 +570,42 @@ class RoiEditor:
         self._Normalize = Normalize
         self._LogNorm = LogNorm
         self._Rectangle = Rectangle
-        self._RectangleSelector = RectangleSelector
+        editor = self
+
+        class _ThrottledRectangleSelector(RectangleSelector):
+            """Avoid flooding the ipympl frontend with full-canvas redraws."""
+
+            _motion_interval = 1 / 20
+
+            def __init__(self, *args, **kwargs):
+                self._last_motion = float("-inf")
+                super().__init__(*args, **kwargs)
+
+            def press(self, event):
+                handled = super().press(event)
+                if handled:
+                    editor._set_drag_active(True)
+                return handled
+
+            def onmove(self, event):
+                if self._eventpress is not None:
+                    now = monotonic()
+                    if now - self._last_motion < self._motion_interval:
+                        return False
+                    self._last_motion = now
+                return super().onmove(event)
+
+            def release(self, event):
+                try:
+                    if not self.ignore(event) and self._eventpress:
+                        # A throttled final mouse-move must still commit the
+                        # exact pointer position at button release.
+                        self._onmove(self._clean_event(event))
+                    return super().release(event)
+                finally:
+                    editor._set_drag_active(False)
+
+        self._RectangleSelector = _ThrottledRectangleSelector
 
         with plt.ioff():
             self._figure, self._axis = plt.subplots(figsize=(8, 7))
@@ -809,11 +847,22 @@ class RoiEditor:
             return self._LogNorm(vmin=low, vmax=high)
         return self._Normalize(vmin=low, vmax=high)
 
+    def _set_drag_active(self, active: bool) -> None:
+        """Hide label text while a rectangle moves, then restore it on release."""
+        if self._drag_active == active:
+            return
+        self._drag_active = active
+        for label in self._roi_label_artists:
+            label.set_visible(not active)
+        if self._figure is not None:
+            self._figure.canvas.draw_idle()
+
     def _render(self) -> None:
         if self._widget is None:
             return
         image = self.images[self.current_detector]
         self._axis.clear()
+        self._roi_label_artists = []
         self._axis.imshow(image, norm=self._image_norm(image), origin="upper")
         self._axis.set_title(
             f"{self.current_detector} ROI editor ({image.shape[1]}×{image.shape[0]})"
@@ -830,7 +879,7 @@ class RoiEditor:
                 linewidth=1.4 if selected else 0.7,
             ))
             if self._labels_control.value:
-                self._axis.text(
+                label = self._axis.text(
                     box.x1,
                     box.y1,
                     box.name,
@@ -838,6 +887,8 @@ class RoiEditor:
                     fontsize=7,
                     verticalalignment="bottom",
                 )
+                label.set_visible(not self._drag_active)
+                self._roi_label_artists.append(label)
         self._axis.set_xlim(-0.5, image.shape[1] - 0.5)
         self._axis.set_ylim(image.shape[0] - 0.5, -0.5)
         self._create_selector()

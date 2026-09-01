@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import copy
 
 import nbformat
 import pytest
@@ -133,7 +134,7 @@ def test_full_analysis_notebook_executes_with_workspace_data():
     pytest.importorskip("nbclient")
     from nbclient import NotebookClient
 
-    notebook = _load(MAIN_NOTEBOOK)
+    notebook = copy.deepcopy(_load(MAIN_NOTEBOOK))
     client = NotebookClient(
         notebook,
         timeout=180,
