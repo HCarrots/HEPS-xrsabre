@@ -1,0 +1,26 @@
+schema_version: "1.0"
+data:
+  path: null
+  files: []
+  scan_ids: []
+  nexus_mapping: null
+selection:
+  roi_ids: []
+  analyzer_ids: []
+  target_edge: null
+  target_edge_energy_ev: null
+corrections:
+  normalize_acquisition_time: true
+  normalize_i0: true
+background:
+  model: pearson
+  fit_windows_ev: []
+  core_normalization_windows_ev: []
+  parameters: {}
+  parameter_bounds: {}
+  smoothing_sigma: null
+quality:
+  risk_thresholds: {}
+  reject_non_finite: true
+output:
+  directory: output

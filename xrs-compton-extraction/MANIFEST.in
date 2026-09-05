@@ -1,0 +1,5 @@
+include CHANGELOG.md
+recursive-include docs *.md
+recursive-include configs *.yaml
+recursive-include examples *.py
+recursive-include notebooks *.ipynb

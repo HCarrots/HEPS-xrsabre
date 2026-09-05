@@ -1,0 +1,15 @@
+schema_version: 1
+dataset: null
+version: null
+source: null
+license: null
+files: []
+external_sources:
+  - name: Biggs-Mendelsohn-Mann atomic Compton profiles
+    doi: https://doi.org/10.1016/0092-640X(75)90030-3
+    coverage: Z=1-102, total and subshell profiles
+  - name: xraylib Biggs profile backend
+    url: https://github.com/tschoonj/xraylib
+    version_constraint: ">=4.2,<5"
+    software_license: BSD-3-Clause
+    redistribution_review: required-before-vendoring-data
